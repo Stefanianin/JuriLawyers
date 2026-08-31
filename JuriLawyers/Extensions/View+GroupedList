@@ -1,0 +1,12 @@
+import SwiftUI
+
+extension View {
+    @ViewBuilder
+    func groupedListStyle() -> some View {
+        #if os(iOS)
+        listStyle(.insetGrouped)
+        #else
+        listStyle(.inset)
+        #endif
+    }
+}
