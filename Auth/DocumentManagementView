@@ -1,0 +1,132 @@
+import SwiftUI
+import UniformTypeIdentifiers
+
+struct DocumentManagementView: View {
+    @EnvironmentObject var documentManager: DocumentManager
+    @State private var showImporter = false
+    @State private var showAddSheet = false
+    @State private var pendingURL: URL?
+    @State private var documentTitle = ""
+    @State private var documentNotes = ""
+    @State private var importError: String?
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if documentManager.documents.isEmpty {
+                    ContentUnavailableView {
+                        Label("Niciun document", systemImage: "doc")
+                    } description: {
+                        Text("Adaugă documente juridice din dosarele tale")
+                    } actions: {
+                        Button("Adaugă document") { showImporter = true }
+                            .buttonStyle(.borderedProminent)
+                    }
+                } else {
+                    List(documentManager.documents) { document in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(document.title)
+                                .font(.headline)
+                            HStack {
+                                Text(document.displaySize)
+                                Text("•")
+                                Text(document.addedAt, style: .date)
+                            }
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            if !document.notes.isEmpty {
+                                Text(document.notes)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                documentManager.deleteDocument(document)
+                            } label: {
+                                Label("Șterge", systemImage: "trash")
+                            }
+                        }
+                    }
+                    .groupedListStyle()
+                }
+            }
+            .navigationTitle("Documente")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button { showImporter = true } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+            .fileImporter(
+                isPresented: $showImporter,
+                allowedContentTypes: DocumentManager.allowedTypes,
+                allowsMultipleSelection: false
+            ) { result in
+                switch result {
+                case .success(let urls):
+                    guard let url = urls.first else { return }
+                    pendingURL = url
+                    documentTitle = url.deletingPathExtension().lastPathComponent
+                    showAddSheet = true
+                case .failure(let error):
+                    importError = error.localizedDescription
+                }
+            }
+            .sheet(isPresented: $showAddSheet) {
+                NavigationStack {
+                    Form {
+                        Section("Document") {
+                            TextField("Titlu", text: $documentTitle)
+                            TextField("Note (opțional)", text: $documentNotes, axis: .vertical)
+                                .lineLimit(3...6)
+                        }
+                    }
+                    .navigationTitle("Document nou")
+                    #if os(iOS)
+                    .navigationBarTitleDisplayMode(.inline)
+                    #endif
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Anulează") {
+                                showAddSheet = false
+                                pendingURL = nil
+                            }
+                        }
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Salvează") {
+                                guard let url = pendingURL else { return }
+                                do {
+                                    try documentManager.importDocument(
+                                        from: url,
+                                        title: documentTitle,
+                                        notes: documentNotes
+                                    )
+                                    showAddSheet = false
+                                    pendingURL = nil
+                                    documentNotes = ""
+                                } catch {
+                                    importError = error.localizedDescription
+                                }
+                            }
+                        }
+                    }
+                }
+                #if os(iOS)
+                .presentationDetents([.medium])
+                #endif
+            }
+            .alert("Eroare import", isPresented: .constant(importError != nil)) {
+                Button("OK") { importError = nil }
+            } message: {
+                Text(importError ?? "")
+            }
+        }
+    }
+}
+
+#Preview {
+    DocumentManagementView()
+        .environmentObject(DocumentManager())
+}
