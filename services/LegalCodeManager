@@ -1,0 +1,89 @@
+import Combine
+import Foundation
+
+@MainActor
+final class LegalCodeManager: ObservableObject {
+    @Published private(set) var codes: [LegalCode] = []
+    @Published var searchText = ""
+
+    init() {
+        loadCodes()
+    }
+
+    var filteredCodes: [LegalCode] {
+        guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return codes
+        }
+        let query = searchText.lowercased()
+        return codes.compactMap { code in
+            let matchingArticles = code.articles.filter {
+                $0.number.lowercased().contains(query) ||
+                $0.title.lowercased().contains(query) ||
+                $0.content.lowercased().contains(query) ||
+                ($0.chapter?.lowercased().contains(query) ?? false)
+            }
+
+            let codeMatches =
+                code.name.lowercased().contains(query) ||
+                code.abbreviation.lowercased().contains(query) ||
+                code.description.lowercased().contains(query)
+
+            if codeMatches {
+                return code
+            }
+            if !matchingArticles.isEmpty {
+                return LegalCode(
+                    id: code.id,
+                    name: code.name,
+                    abbreviation: code.abbreviation,
+                    description: code.description,
+                    lastUpdated: code.lastUpdated,
+                    articles: matchingArticles
+                )
+            }
+            return nil
+        }
+    }
+
+    func articles(for codeID: String, search: String = "") -> [LegalArticle] {
+        guard let code = codes.first(where: { $0.id == codeID }) else { return [] }
+        guard !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return code.articles
+        }
+        let query = search.lowercased()
+        return code.articles.filter {
+            $0.number.lowercased().contains(query) ||
+            $0.title.lowercased().contains(query) ||
+            $0.content.lowercased().contains(query)
+        }
+    }
+
+    private func loadCodes() {
+        guard let url = Bundle.main.url(forResource: "legal_codes", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let bundle = try? JSONDecoder().decode(LegalCodesBundle.self, from: data) else {
+            codes = Self.fallbackCodes
+            return
+        }
+        codes = bundle.codes
+    }
+
+    private static let fallbackCodes: [LegalCode] = [
+        LegalCode(
+            id: "civil",
+            name: "Codul Civil",
+            abbreviation: "CC",
+            description: "Legea nr. 287/2009 privind Codul civil",
+            lastUpdated: "2024",
+            articles: [
+                LegalArticle(
+                    id: "civil-1",
+                    number: "Art. 1",
+                    title: "Aplicarea legii civile",
+                    content: "Legea civilă reglementează raportul juridic civil dintre persoane, ca raport social, în concordanță cu respectul dueat pentru persoana umană.",
+                    chapter: "Cartea I - Despre dispozițiile generale"
+                )
+            ]
+        )
+    ]
+}
