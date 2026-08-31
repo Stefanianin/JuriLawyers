@@ -1,0 +1,41 @@
+import Foundation
+
+struct User: Codable, Identifiable, Equatable {
+    let id: UUID
+    var email: String
+    var fullName: String
+    var createdAt: Date
+
+    init(id: UUID = UUID(), email: String, fullName: String, createdAt: Date = .now) {
+        self.id = id
+        self.email = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        self.fullName = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.createdAt = createdAt
+    }
+}
+
+enum AuthError: LocalizedError {
+    case invalidEmail
+    case passwordTooShort
+    case passwordsDoNotMatch
+    case emailAlreadyRegistered
+    case invalidCredentials
+    case userNotFound
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidEmail:
+            return "Adresa de email nu este validă."
+        case .passwordTooShort:
+            return "Parola trebuie să aibă cel puțin 6 caractere."
+        case .passwordsDoNotMatch:
+            return "Parolele nu coincid."
+        case .emailAlreadyRegistered:
+            return "Există deja un cont cu acest email."
+        case .invalidCredentials:
+            return "Email sau parolă incorectă."
+        case .userNotFound:
+            return "Utilizatorul nu a fost găsit."
+        }
+    }
+}
