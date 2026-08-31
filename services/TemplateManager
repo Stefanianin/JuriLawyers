@@ -1,0 +1,99 @@
+import Combine
+import Foundation
+import UniformTypeIdentifiers
+
+@MainActor
+final class TemplateManager: ObservableObject {
+    @Published private(set) var templates: [LawyerTemplate] = []
+    @Published var errorMessage: String?
+
+    private var storageKey: String { "juri_templates_\(ownerEmail)" }
+    private var ownerEmail: String = ""
+
+    func configure(for userEmail: String) {
+        ownerEmail = userEmail.lowercased()
+        loadTemplates()
+    }
+
+    func importTemplate(from url: URL, name: String, category: TemplateCategory) throws {
+        guard !ownerEmail.isEmpty else { return }
+
+        let didAccess = url.startAccessingSecurityScopedResource()
+        defer { if didAccess { url.stopAccessingSecurityScopedResource() } }
+
+        let fileManager = FileManager.default
+        let templatesDir = templatesDirectory()
+        try fileManager.createDirectory(at: templatesDir, withIntermediateDirectories: true)
+
+        let ext = url.pathExtension.isEmpty ? "bin" : url.pathExtension
+        let templateId = UUID()
+        let destination = templatesDir.appendingPathComponent("\(templateId.uuidString).\(ext)")
+
+        if fileManager.fileExists(atPath: destination.path) {
+            try fileManager.removeItem(at: destination)
+        }
+        try fileManager.copyItem(at: url, to: destination)
+
+        let attributes = try fileManager.attributesOfItem(atPath: destination.path)
+        let fileSize = attributes[.size] as? Int64 ?? 0
+
+        let template = LawyerTemplate(
+            id: templateId,
+            name: name.isEmpty ? url.deletingPathExtension().lastPathComponent : name,
+            category: category,
+            fileName: destination.lastPathComponent,
+            fileExtension: ext,
+            uploadedAt: .now,
+            fileSize: fileSize,
+            ownerEmail: ownerEmail
+        )
+
+        templates.insert(template, at: 0)
+        saveTemplates()
+    }
+
+    func deleteTemplate(_ template: LawyerTemplate) {
+        let fileURL = templatesDirectory().appendingPathComponent(template.fileName)
+        try? FileManager.default.removeItem(at: fileURL)
+        templates.removeAll { $0.id == template.id }
+        saveTemplates()
+    }
+
+    func fileURL(for template: LawyerTemplate) -> URL {
+        templatesDirectory().appendingPathComponent(template.fileName)
+    }
+
+    func templates(in category: TemplateCategory?) -> [LawyerTemplate] {
+        guard let category else { return templates }
+        return templates.filter { $0.category == category }
+    }
+
+    private func templatesDirectory() -> URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Templates", isDirectory: true)
+            .appendingPathComponent(ownerEmail, isDirectory: true)
+    }
+
+    private func loadTemplates() {
+        guard let data = UserDefaults.standard.data(forKey: storageKey),
+              let decoded = try? JSONDecoder().decode([LawyerTemplate].self, from: data) else {
+            templates = []
+            return
+        }
+        templates = decoded.sorted { $0.uploadedAt > $1.uploadedAt }
+    }
+
+    private func saveTemplates() {
+        if let data = try? JSONEncoder().encode(templates) {
+            UserDefaults.standard.set(data, forKey: storageKey)
+        }
+    }
+
+    static let allowedTypes: [UTType] = [
+        .pdf,
+        .plainText,
+        .rtf,
+        UTType(filenameExtension: "doc") ?? .data,
+        UTType(filenameExtension: "docx") ?? .data
+    ]
+}
