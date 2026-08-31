@@ -1,0 +1,163 @@
+{
+  "codes": [
+    {
+      "id": "civil",
+      "name": "Codul Civil",
+      "abbreviation": "CC",
+      "description": "Legea nr. 287/2009 privind Codul civil, republicată",
+      "lastUpdated": "2024",
+      "articles": [
+        {
+          "id": "cc-1",
+          "number": "Art. 1",
+          "title": "Aplicarea legii civile",
+          "content": "Legea civilă reglementează raportul juridic civil dintre persoane, ca raport social, în concordanță cu respectul dueat pentru persoana umană.",
+          "chapter": "Cartea I - Despre dispozițiile generale"
+        },
+        {
+          "id": "cc-2",
+          "number": "Art. 2",
+          "title": "Noțiunea de persoană",
+          "content": "Persoana fizică este subiect de drept civil de la naștere până la moarte.",
+          "chapter": "Cartea I - Despre dispozițiile generale"
+        },
+        {
+          "id": "cc-1357",
+          "number": "Art. 1.357",
+          "title": "Răspunderea delictuală",
+          "content": "Orice persoană are datoria să respecte regulile de conduită pe care le cere, după împrejurări, viața în societate, iar cel care, prin culpa sa, le încalcă și pricinuiește altuia un prejudiciu, este obligat să-l repare.",
+          "chapter": "Titlul IX - Răspunderea civilă delictuală"
+        },
+        {
+          "id": "cc-1666",
+          "number": "Art. 1.666",
+          "title": "Contractul",
+          "content": "Contractul este acordul de voințe dintre două sau mai multe persoane cu intenția de a constitui, modifica sau stinge un raport juridic.",
+          "chapter": "Cartea V - Despre obligații"
+        }
+      ]
+    },
+    {
+      "id": "penal",
+      "name": "Codul Penal",
+      "abbreviation": "CP",
+      "description": "Legea nr. 286/2009 privind Codul penal, cu modificările ulterioare",
+      "lastUpdated": "2024",
+      "articles": [
+        {
+          "id": "cp-1",
+          "number": "Art. 1",
+          "title": "Principiul legalității incriminării",
+          "content": "Legea penală incriminează fapta săvârșită cu vinovăție. Nu se poate incrimina o faptă printr-un act normativ inferior legii.",
+          "chapter": "Partea Generală - Titlul I"
+        },
+        {
+          "id": "cp-15",
+          "number": "Art. 15",
+          "title": "Principiul personalității pedepsei",
+          "content": "Nimeni nu poate fi pedepsit decât pentru fapta prevăzută de legea penală ca infracțiune, săvârșită cu vinovăție.",
+          "chapter": "Partea Generală - Titlul I"
+        },
+        {
+          "id": "cp-175",
+          "number": "Art. 175",
+          "title": "Infracțiunea",
+          "content": "Infracțiunea este fapta prevăzută de legea penală, săvârșită cu vinovăție, nejustificată și imputabilă persoanei care a săvârșit-o.",
+          "chapter": "Partea Generală - Titlul IV"
+        }
+      ]
+    },
+    {
+      "id": "proc-civil",
+      "name": "Codul de Procedură Civilă",
+      "abbreviation": "CPC",
+      "description": "Legea nr. 134/2010 privind Codul de procedură civilă",
+      "lastUpdated": "2024",
+      "articles": [
+        {
+          "id": "cpc-1",
+          "number": "Art. 1",
+          "title": "Accesul liber la justiție",
+          "content": "Orice persoană are dreptul de a se adresa instanțelor judecătorești pentru apărarea drepturilor, libertăților și intereselor sale legitime.",
+          "chapter": "Cartea I - Dispoziții generale"
+        },
+        {
+          "id": "cpc-94",
+          "number": "Art. 94",
+          "title": "Cererea de chemare în judecată",
+          "content": "Cererea de chemare în judecată se depune la instanța competentă, în numărul de exemplare prevăzut de lege.",
+          "chapter": "Cartea II - Procedura de față cu instanța"
+        }
+      ]
+    },
+    {
+      "id": "proc-penal",
+      "name": "Codul de Procedură Penală",
+      "abbreviation": "CPP",
+      "description": "Legea nr. 135/2010 privind Codul de procedură penală",
+      "lastUpdated": "2024",
+      "articles": [
+        {
+          "id": "cpp-1",
+          "number": "Art. 1",
+          "title": "Rolul procesului penal",
+          "content": "Procesul penal are rolul de a apăra ordinea de drept, de a apăra drepturile și libertățile persoanelor, de a descoperi și pedepsi faptele prevăzute de legea penală.",
+          "chapter": "Partea Generală"
+        },
+        {
+          "id": "cpp-289",
+          "number": "Art. 289",
+          "title": "Dreptul la apărare",
+          "content": "Suspectul sau inculpatul are dreptul să fie asistat de un apărător ales, iar, în cazurile prevăzute de lege, asistența unui apărător din oficiu este obligatorie.",
+          "chapter": "Titlul II - Părțile"
+        }
+      ]
+    },
+    {
+      "id": "muncii",
+      "name": "Codul Muncii",
+      "abbreviation": "CM",
+      "description": "Legea nr. 53/2003 - Codul muncii, republicat",
+      "lastUpdated": "2024",
+      "articles": [
+        {
+          "id": "cm-1",
+          "number": "Art. 1",
+          "title": "Domeniul de aplicare",
+          "content": "Prezentul cod reglementează totalitatea raporturilor individuale și colective de muncă.",
+          "chapter": "Titlul I - Dispoziții generale"
+        },
+        {
+          "id": "cm-13",
+          "number": "Art. 13",
+          "title": "Contractul individual de muncă",
+          "content": "Contractul individual de muncă este contractul conform căruia o persoană fizică, numită salariat, se obligă să presteze munca pentru un angajator, sub autoritatea acestuia, în schimbul unei remunerații.",
+          "chapter": "Titlul II - Contractul individual de muncă"
+        }
+      ]
+    },
+    {
+      "id": "fiscal",
+      "name": "Codul Fiscal",
+      "abbreviation": "CF",
+      "description": "Legea nr. 227/2015 privind Codul fiscal",
+      "lastUpdated": "2024",
+      "articles": [
+        {
+          "id": "cf-3",
+          "number": "Art. 3",
+          "title": "Principiul legalității",
+          "content": "Impunerea se face numai prin lege, în condițiile prevăzute de Constituție.",
+          "chapter": "Titlul I - Dispoziții generale"
+        },
+        {
+          "id": "cf-41",
+          "number": "Art. 41",
+          "title": "Contribuabil",
+          "content": "Contribuabilul este persoana fizică sau juridică care are, potrivit legii, obligația de a plăti impozite, taxe, contribuții sociale obligatorii.",
+          "chapter": "Titlul I - Dispoziții generale"
+        }
+      ]
+    }
+  ]
+}
