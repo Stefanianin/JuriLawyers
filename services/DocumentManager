@@ -1,0 +1,108 @@
+import Combine
+import Foundation
+import UniformTypeIdentifiers
+
+struct StoredDocument: Codable, Identifiable, Equatable {
+    let id: UUID
+    var title: String
+    var fileName: String
+    var fileExtension: String
+    var addedAt: Date
+    var fileSize: Int64
+    var notes: String
+
+    var displaySize: String {
+        ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file)
+    }
+}
+
+@MainActor
+final class DocumentManager: ObservableObject {
+    @Published private(set) var documents: [StoredDocument] = []
+    @Published var errorMessage: String?
+
+    private var storageKey: String { "juri_documents_\(ownerEmail)" }
+    private var ownerEmail: String = ""
+
+    func configure(for userEmail: String) {
+        ownerEmail = userEmail.lowercased()
+        loadDocuments()
+    }
+
+    func importDocument(from url: URL, title: String, notes: String = "") throws {
+        guard !ownerEmail.isEmpty else { return }
+
+        let didAccess = url.startAccessingSecurityScopedResource()
+        defer { if didAccess { url.stopAccessingSecurityScopedResource() } }
+
+        let fileManager = FileManager.default
+        let docsDir = documentsDirectory()
+        try fileManager.createDirectory(at: docsDir, withIntermediateDirectories: true)
+
+        let ext = url.pathExtension.isEmpty ? "bin" : url.pathExtension
+        let docId = UUID()
+        let destination = docsDir.appendingPathComponent("\(docId.uuidString).\(ext)")
+
+        if fileManager.fileExists(atPath: destination.path) {
+            try fileManager.removeItem(at: destination)
+        }
+        try fileManager.copyItem(at: url, to: destination)
+
+        let attributes = try fileManager.attributesOfItem(atPath: destination.path)
+        let fileSize = attributes[.size] as? Int64 ?? 0
+
+        let document = StoredDocument(
+            id: docId,
+            title: title.isEmpty ? url.deletingPathExtension().lastPathComponent : title,
+            fileName: destination.lastPathComponent,
+            fileExtension: ext,
+            addedAt: .now,
+            fileSize: fileSize,
+            notes: notes
+        )
+
+        documents.insert(document, at: 0)
+        saveDocuments()
+    }
+
+    func deleteDocument(_ document: StoredDocument) {
+        let fileURL = documentsDirectory().appendingPathComponent(document.fileName)
+        try? FileManager.default.removeItem(at: fileURL)
+        documents.removeAll { $0.id == document.id }
+        saveDocuments()
+    }
+
+    func fileURL(for document: StoredDocument) -> URL {
+        documentsDirectory().appendingPathComponent(document.fileName)
+    }
+
+    private func documentsDirectory() -> URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Documents", isDirectory: true)
+            .appendingPathComponent(ownerEmail, isDirectory: true)
+    }
+
+    private func loadDocuments() {
+        guard let data = UserDefaults.standard.data(forKey: storageKey),
+              let decoded = try? JSONDecoder().decode([StoredDocument].self, from: data) else {
+            documents = []
+            return
+        }
+        documents = decoded.sorted { $0.addedAt > $1.addedAt }
+    }
+
+    private func saveDocuments() {
+        if let data = try? JSONEncoder().encode(documents) {
+            UserDefaults.standard.set(data, forKey: storageKey)
+        }
+    }
+
+    static let allowedTypes: [UTType] = [
+        .pdf,
+        .plainText,
+        .rtf,
+        .image,
+        UTType(filenameExtension: "doc") ?? .data,
+        UTType(filenameExtension: "docx") ?? .data
+    ]
+}
