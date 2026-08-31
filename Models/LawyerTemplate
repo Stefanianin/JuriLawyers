@@ -1,0 +1,47 @@
+import Foundation
+
+struct LawyerTemplate: Codable, Identifiable, Equatable {
+    let id: UUID
+    var name: String
+    var category: TemplateCategory
+    var fileName: String
+    var fileExtension: String
+    var uploadedAt: Date
+    var fileSize: Int64
+    var ownerEmail: String
+
+    var displaySize: String {
+        ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file)
+    }
+
+    var iconName: String {
+        switch fileExtension.lowercased() {
+        case "pdf": return "doc.richtext"
+        case "doc", "docx": return "doc.text"
+        case "txt", "rtf": return "doc.plaintext"
+        default: return "doc"
+        }
+    }
+}
+
+enum TemplateCategory: String, Codable, CaseIterable, Identifiable {
+    case contract = "Contract"
+    case cerere = "Cerere"
+    case plangere = "Plângere"
+    case notificare = "Notificare"
+    case procură = "Procură"
+    case altele = "Altele"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .contract: return "signature"
+        case .cerere: return "envelope.open"
+        case .plangere: return "exclamationmark.bubble"
+        case .notificare: return "bell.badge"
+        case .procură: return "person.badge.key"
+        case .altele: return "folder"
+        }
+    }
+}
