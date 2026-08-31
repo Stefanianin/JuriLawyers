@@ -1,4 +1,4 @@
-import SwiftUI
+import SwiftUIhttps://github.com/Stefanianin/JuriLawyers/tree/main
 import UniformTypeIdentifiers
 
 struct DocumentManagementView: View {
