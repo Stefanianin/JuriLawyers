@@ -1,0 +1,161 @@
+import SwiftUI
+
+struct LoginView: View {
+    @EnvironmentObject var authManager: AuthManager
+    @State private var email = ""
+    @State private var password = ""
+    @State private var showRegister = false
+    @FocusState private var focusedField: Field?
+
+    private enum Field { case email, password }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 28) {
+                    header
+
+                    VStack(spacing: 16) {
+                        AuthTextField(title: "Email", text: $email, icon: "envelope")
+                            .focused($focusedField, equals: .email)
+                            #if os(iOS)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            #endif
+
+                        AuthSecureField(title: "Parolă", text: $password, icon: "lock")
+                            .focused($focusedField, equals: .password)
+                    }
+
+                    if let error = authManager.errorMessage {
+                        Text(error)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    Button {
+                        Task { await authManager.login(email: email, password: password) }
+                    } label: {
+                        Group {
+                            if authManager.isLoading {
+                                ProgressView()
+                                    .tint(.white)
+                            } else {
+                                Text("Autentificare")
+                                    .fontWeight(.semibold)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(authManager.isLoading || email.isEmpty || password.isEmpty)
+
+                    Button("Nu ai cont? Înregistrează-te") {
+                        showRegister = true
+                    }
+                    .font(.subheadline)
+                }
+                .padding(24)
+            }
+            .background(AppColors.groupedBackground)
+            .navigationDestination(isPresented: $showRegister) {
+                RegisterView()
+            }
+            .onSubmit {
+                switch focusedField {
+                case .email: focusedField = .password
+                default:
+                    Task { await authManager.login(email: email, password: password) }
+                }
+            }
+        }
+    }
+
+    private var header: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "scale.3d")
+                .font(.system(size: 56))
+                .foregroundStyle(.blue)
+                .padding(.top, 24)
+
+            Text("JuriLawyers")
+                .font(.largeTitle.bold())
+
+            Text("Platformă pentru avocați — șabloane, documente și coduri juridice")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+    }
+}
+
+struct AuthTextField: View {
+    let title: String
+    @Binding var text: String
+    let icon: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack {
+                Image(systemName: icon)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 20)
+                TextField(title, text: $text)
+            }
+            .padding(12)
+            .background(AppColors.secondaryGroupedBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+    }
+}
+
+struct AuthSecureField: View {
+    let title: String
+    @Binding var text: String
+    let icon: String
+    @State private var isVisible = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack {
+                Image(systemName: icon)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 20)
+
+                Group {
+                    if isVisible {
+                        TextField(title, text: $text)
+                    } else {
+                        SecureField(title, text: $text)
+                    }
+                }
+
+                Button {
+                    isVisible.toggle()
+                } label: {
+                    Image(systemName: isVisible ? "eye.slash" : "eye")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(12)
+            .background(AppColors.secondaryGroupedBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+    }
+}
+
+#Preview {
+    LoginView()
+        .environmentObject(AuthManager())
+}
