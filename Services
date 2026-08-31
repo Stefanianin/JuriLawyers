@@ -1,0 +1,174 @@
+import Combine
+import CryptoKit
+import Foundation
+import Security
+
+enum KeychainHelper {
+    private static let service = "stef.JuriLawyers"
+
+    static func savePassword(_ password: String, for email: String) throws {
+        let account = email.lowercased()
+        let data = Data(password.utf8)
+
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+
+        SecItemDelete(query as CFDictionary)
+
+        var addQuery = query
+        addQuery[kSecValueData as String] = data
+
+        let status = SecItemAdd(addQuery as CFDictionary, nil)
+        guard status == errSecSuccess else {
+            throw AuthError.invalidCredentials
+        }
+    }
+
+    static func loadPassword(for email: String) -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: email.lowercased(),
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess, let data = result as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    static func deletePassword(for email: String) {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: email.lowercased()
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
+}
+
+private enum PasswordHasher {
+    static func hash(_ password: String) -> String {
+        let digest = SHA256.hash(data: Data(password.utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+@MainActor
+final class AuthManager: ObservableObject {
+    @Published private(set) var currentUser: User?
+    @Published var isAuthenticated = false
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+
+    private let usersKey = "juri_registered_users"
+    private let sessionKey = "juri_current_session_email"
+
+    init() {
+        restoreSession()
+    }
+
+    var isLoggedIn: Bool { currentUser != nil && isAuthenticated }
+
+    func register(email: String, password: String, confirmPassword: String, fullName: String) async {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            try validate(email: email, password: password, confirmPassword: confirmPassword)
+
+            var users = loadUsers()
+            let normalizedEmail = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+
+            guard !users.contains(where: { $0.email == normalizedEmail }) else {
+                throw AuthError.emailAlreadyRegistered
+            }
+
+            let user = User(email: normalizedEmail, fullName: fullName.isEmpty ? normalizedEmail : fullName)
+            users.append(user)
+            saveUsers(users)
+            try KeychainHelper.savePassword(PasswordHasher.hash(password), for: normalizedEmail)
+
+            currentUser = user
+            isAuthenticated = true
+            UserDefaults.standard.set(normalizedEmail, forKey: sessionKey)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func login(email: String, password: String) async {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            let normalizedEmail = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+            guard isValidEmail(normalizedEmail) else { throw AuthError.invalidEmail }
+            guard password.count >= 6 else { throw AuthError.passwordTooShort }
+
+            let users = loadUsers()
+            guard let user = users.first(where: { $0.email == normalizedEmail }) else {
+                throw AuthError.invalidCredentials
+            }
+
+            guard let storedHash = KeychainHelper.loadPassword(for: normalizedEmail),
+                  storedHash == PasswordHasher.hash(password) else {
+                throw AuthError.invalidCredentials
+            }
+
+            currentUser = user
+            isAuthenticated = true
+            UserDefaults.standard.set(normalizedEmail, forKey: sessionKey)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func logout() {
+        currentUser = nil
+        isAuthenticated = false
+        UserDefaults.standard.removeObject(forKey: sessionKey)
+    }
+
+    private func restoreSession() {
+        guard let email = UserDefaults.standard.string(forKey: sessionKey) else { return }
+        let users = loadUsers()
+        if let user = users.first(where: { $0.email == email }) {
+            currentUser = user
+            isAuthenticated = true
+        }
+    }
+
+    private func loadUsers() -> [User] {
+        guard let data = UserDefaults.standard.data(forKey: usersKey),
+              let users = try? JSONDecoder().decode([User].self, from: data) else {
+            return []
+        }
+        return users
+    }
+
+    private func saveUsers(_ users: [User]) {
+        if let data = try? JSONEncoder().encode(users) {
+            UserDefaults.standard.set(data, forKey: usersKey)
+        }
+    }
+
+    private func validate(email: String, password: String, confirmPassword: String) throws {
+        let normalizedEmail = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        guard isValidEmail(normalizedEmail) else { throw AuthError.invalidEmail }
+        guard password.count >= 6 else { throw AuthError.passwordTooShort }
+        guard password == confirmPassword else { throw AuthError.passwordsDoNotMatch }
+    }
+
+    private func isValidEmail(_ email: String) -> Bool {
+        let pattern = #"^[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"#
+        return email.range(of: pattern, options: .regularExpression) != nil
+    }
+}
