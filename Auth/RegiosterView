@@ -1,0 +1,85 @@
+import SwiftUI
+
+struct RegisterView: View {
+    @EnvironmentObject var authManager: AuthManager
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var fullName = ""
+    @State private var email = ""
+    @State private var password = ""
+    @State private var confirmPassword = ""
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                VStack(spacing: 8) {
+                    Text("Creare cont avocat")
+                        .font(.title2.bold())
+                    Text("Completează emailul și parola pentru acces la platformă")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.top, 8)
+
+                VStack(spacing: 16) {
+                    AuthTextField(title: "Nume complet", text: $fullName, icon: "person")
+                    AuthTextField(title: "Email", text: $email, icon: "envelope")
+                        #if os(iOS)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        #endif
+                    AuthSecureField(title: "Parolă", text: $password, icon: "lock")
+                    AuthSecureField(title: "Confirmă parola", text: $confirmPassword, icon: "lock.rotation")
+                }
+
+                if let error = authManager.errorMessage {
+                    Text(error)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                Button {
+                    Task {
+                        await authManager.register(
+                            email: email,
+                            password: password,
+                            confirmPassword: confirmPassword,
+                            fullName: fullName
+                        )
+                        if authManager.isLoggedIn {
+                            dismiss()
+                        }
+                    }
+                } label: {
+                    Group {
+                        if authManager.isLoading {
+                            ProgressView().tint(.white)
+                        } else {
+                            Text("Creează cont")
+                                .fontWeight(.semibold)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(authManager.isLoading || email.isEmpty || password.isEmpty || confirmPassword.isEmpty)
+            }
+            .padding(24)
+        }
+        .background(AppColors.groupedBackground)
+        .navigationTitle("Înregistrare")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+    }
+}
+
+#Preview {
+    NavigationStack {
+        RegisterView()
+            .environmentObject(AuthManager())
+    }
+}
