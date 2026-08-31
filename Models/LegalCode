@@ -1,0 +1,22 @@
+import Foundation
+
+struct LegalCode: Codable, Identifiable, Equatable {
+    let id: String
+    let name: String
+    let abbreviation: String
+    let description: String
+    let lastUpdated: String
+    let articles: [LegalArticle]
+}
+
+struct LegalArticle: Codable, Identifiable, Equatable {
+    let id: String
+    let number: String
+    let title: String
+    let content: String
+    let chapter: String?
+}
+
+struct LegalCodesBundle: Codable {
+    let codes: [LegalCode]
+}
